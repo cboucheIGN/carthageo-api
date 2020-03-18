@@ -9,7 +9,8 @@ const TABLES = [
   'country',
   'event',
   'medal',
-  'olympiad'
+  'olympiad',
+  'capital'
 ];
 
 exports.check = function(req, res, next) {
@@ -24,6 +25,9 @@ exports.list = function(req, res) {
   const table = req.params.table;
   if (table === 'country') {
     return listCountry(req, res);
+  }
+  if (table === 'capital') {
+    return listCapital(req, res);
   }
 
   const size = getQuerySize(req);
@@ -74,6 +78,48 @@ const listCountry = function(req, res) {
               pop: item.pop,
               first_participation: item.first_participation,
               last_participation: item.last_participation
+            },
+            geometry: JSON.parse(item.geometry)
+          };
+        });
+        res.json({
+          type: 'FeatureCollection',
+          features: result
+        });
+    })
+    .catch((error) => {
+        // error;
+        res.send(error);
+    });
+}
+
+
+const listCapital = function(req, res) {
+
+  const size = getQuerySize(req);
+  const skip = getQueryPage(req) * size >= 0 ? getQueryPage(req) * size : 0;
+
+  let sql = 'SELECT label_rank, name, '
+          + '   country_name, country_code,'
+          + '   geojson as geometry'
+          + ' FROM capital';
+
+  if (size !== -1) {
+    sql += ` LIMIT ${size} OFFSET ${skip}`;
+  }
+
+  db.any(sql)
+    .then((data) => {
+        // success;
+        // data.forEach((item) => item.geometry = JSON.parse(item.geometry));
+        const result = data.map((item) => {
+          return {
+            type: 'Feature',
+            properties: {
+              label_rank: item.label_rank,
+              name: item.name,
+              country_name: item.country_name,
+              country_code: item.country_code
             },
             geometry: JSON.parse(item.geometry)
           };
